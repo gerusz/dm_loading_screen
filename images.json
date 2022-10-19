@@ -1,0 +1,37 @@
+[
+    {
+        "name": "Test1",
+        "title": "Long Rest",
+        "file": "images/DND_Art1.png",
+        "license": "© Wizards of the Coast",
+        "categories": [
+            "rest",
+            "social",
+            "intentionallyWrong"
+        ]
+    },
+    {
+        "name": "TestMulti",
+        "title": "A typical evening in the Yawning Portal",
+        "file": "images/DND_Art4.png",
+        "license": "© Wizards of the Coast",
+        "categories": [
+            "rest",
+            "combat",
+            "social"
+        ]
+    },
+    {
+        "file": "images/DND_Art8.png",
+        "license": "© Wizards of the Coast"
+    },
+    {
+        "name": "Underdark",
+        "title": "Visit scenic Underdark! Only 99% chance of death or enslavement this time of the year.",
+        "file": "images/underdark_pano.jpg",
+        "license":"© Wizards of the Coast, Francis Tsai",
+        "categories": [
+            "combat"
+        ]
+    }
+]
