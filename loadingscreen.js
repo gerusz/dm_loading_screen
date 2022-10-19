@@ -5,6 +5,8 @@ const imageFiles = new Map();
 const imageNames = new Array();
 const currentImageHints = new Array();
 const canvas = document.getElementById("canvas");
+const vignetteCanvas = document.getElementById("vignette");
+const textCanvas = document.getElementById("text");
 const width = canvas.getBoundingClientRect().width;
 const height = canvas.getBoundingClientRect().height;
 const aspect = width/height;
@@ -60,8 +62,20 @@ export function start() {
 	console.log(`Canvas dimensions: w = ${width} h = ${height}`)
 	canvas.width = width;
 	canvas.height = height;
+	vignetteCanvas.width = width;
+	vignetteCanvas.height = height;
+	textCanvas.width = width;
+	textCanvas.height = height;
 	load_images();
 	canvas.getContext("2d").clearRect(0, 0, width, height);
+	vignetteCanvas.getContext("2d").clearRect(0, 0, width, height);
+	if(config.vignette) {
+		vignette(vignetteCanvas.getContext("2d"));
+	}
+	else {
+		vignetteCanvas.getContext("2d").fillRect(0, 0, width, height);
+	}
+	textCanvas.getContext("2d").clearRect(0, 0, width, height);
 	font.load().then( () => {
 		document.fonts.add(font);
 		draw();
@@ -86,7 +100,7 @@ function load_images() {
 			categories: hintCategories,
 			animations: animations,
 			title: title,
-			license: img.license
+			license: license
 		});
 		imageNames.push(name);
 	});
@@ -102,6 +116,8 @@ function draw() {
 	ctx.globalAlpha = 1;
 	const time = new Date();
 	let textAlpha = 1;
+	let redrawHint = false;
+	let redrawTitle = false;
 
 	let elapsed = time.getTime() - imageAnimation.startTime.getTime();
 	let seconds = Math.floor(elapsed/1000);
@@ -112,9 +128,11 @@ function draw() {
 			changeHint();
 		}
 		textAlpha = millis / 1000;
+		redrawHint = true;
 	}
 	else if (seconds % hintTime == hintTime-1) {
 		textAlpha = 1.0 - (millis/1000);
+		redrawHint = true;
 	}
 	else {
 		hintChangedThisFrame = false;
@@ -127,24 +145,29 @@ function draw() {
 		}
 		displayImage.a = millis / 1000;
 		textAlpha = millis / 1000;
+		redrawTitle = true;
 	}
 	else if (seconds % slideTime == slideTime-1) {
 		displayImage.a = 1.0 - (millis / 1000);
 		textAlpha = 1.0 - (millis/1000);
+		redrawTitle = true;
 	}
 	else {
 		imageChangedThisFrame = false;
 	}
 	
 	ctx.clearRect(0, 0, width, height);
-	ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-	ctx.fillRect(0, 0, width, height);
 	ctx.save();
 
 	imageAnimation.animationFunction(imageAnimation.startTime, time);
 
 	showImage(ctx);
-	drawHint(ctx, textAlpha);
+	if(redrawHint || hintChangedThisFrame) {
+		drawHint(textCanvas.getContext("2d"), textAlpha);
+	}
+	if(redrawTitle || imageChangedThisFrame) {
+		drawTitle(textCanvas.getContext("2d"), displayImage.a);
+	}
 
 
 	window.requestAnimationFrame(draw);
@@ -170,6 +193,7 @@ function drawHint(ctx, alpha) {
 	 * Draws the hint on the canvas
 	 */
 	ctx.save();
+	ctx.clearRect(0, height/2, width, height/2);
 	let fontSize = Math.floor(0.05*height);
 	ctx.font = `${fontSize}px bilbo`;
 	ctx.textBaseline = "bottom";
@@ -189,6 +213,7 @@ function changeSlide() {
 	/**
 	 * Changes the image
 	 */
+	canvas.getContext("2d").clearRect(0, 0, width, height);
 	let newImageName;
 	do {
 		let imageIndex = Math.floor(Math.random() * imageNames.length);
@@ -254,33 +279,34 @@ function showImage(ctx) {
 		ctx.globalAlpha = displayImage.a;
 		ctx.drawImage(displayImage.img, displayImage.x, displayImage.y, displayImage.w, displayImage.h)
 		ctx.globalAlpha = 1
-		if(config.vignette) vignette(ctx);
-		// Also render the title in the upper right corner
-		let fontSize = Math.floor(0.025*height);
-		ctx.font = `${fontSize}px bilbo`;
-		ctx.textBaseline = "top";
-		ctx.textAlign = "right";
-		let x = 0.9875 * width;
-		let y = Math.floor(0.0125*height);
-		ctx.fillStyle = `rgb(255, 255, 255)`;
-		ctx.strokeStyle = `rgb(0, 0, 0)`;
-		ctx.lineWidth = Math.floor(0.005*Math.max(width, height));
-		ctx.lineJoin = "round";
-		ctx.strokeText(currentImageTitle, x, y);
-		ctx.fillText(currentImageTitle, x, y);
-		// And the license in the upper left if there's any
-		ctx.textAlign = "left";
-		x = 0.0125 * width;
-		ctx.fillStyle = `rgb(255, 255, 255)`;
-		ctx.strokeStyle = `rgb(0, 0, 0)`;
-		ctx.lineWidth = Math.floor(0.005*Math.max(width, height));
-		ctx.lineJoin = "round";
-		ctx.strokeText(currentImageLicense, x, y);
-		ctx.fillText(currentImageLicense, x, y);
 	}
 
 	ctx.save();
 	ctx.globalAlpha = 1;
+}
+
+function drawTitle(ctx, alpha) {
+	ctx.clearRect(0, 0, width, height/2);
+	// Also render the title in the upper right corner
+	let fontSize = Math.floor(0.025*height);
+	ctx.font = `${fontSize}px bilbo`;
+	ctx.textBaseline = "top";
+	ctx.textAlign = "right";
+	let x = 0.9875 * width;
+	let y = Math.floor(0.0125*height);
+	ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+	ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+	ctx.lineWidth = Math.floor(0.005*Math.max(width, height));
+	ctx.lineJoin = "round";
+	ctx.strokeText(currentImageTitle, x, y);
+	ctx.fillText(currentImageTitle, x, y);
+	// And the license in the upper left if there's any
+	ctx.textAlign = "left";
+	x = 0.0125 * width;
+	ctx.lineWidth = Math.floor(0.005*Math.max(width, height));
+	ctx.lineJoin = "round";
+	ctx.strokeText(currentImageLicense, x, y);
+	ctx.fillText(currentImageLicense, x, y);
 }
 
 function staticAnim(startTime, currentTime) {
@@ -321,46 +347,54 @@ function zoomOutAnim(startTime, currentTime) {
 	displayImage.y = -(displayImage.h - height)/2;
 }
 
-function panDownAnim(startTime, currentTime) {
-	let scale = width / displayImage.w_orig;
+function panDownAnim(startTime, currentTime) {	
+	if(displayImage.w_orig != width) {
+		scaleImage(true);
+	}
 	let diff = currentTime.getTime() - startTime.getTime();
 	let animState = diff / (slideTime * 1000);
 
-	displayImage.w = scale * displayImage.w_orig;
-	displayImage.h = scale * displayImage.h_orig;
+	displayImage.w = displayImage.w_orig;
+	displayImage.h = displayImage.h_orig;
 	displayImage.x = 0;
 	displayImage.y = -animState * (displayImage.h - height);
 }
 
 function panUpAnim(startTime, currentTime) {
-	let scale = width / displayImage.w_orig;
+	if(displayImage.w_orig != width) {
+		scaleImage(true);
+	}
 	let diff = currentTime.getTime() - startTime.getTime();
 	let animState = diff / (slideTime * 1000);
 
-	displayImage.w = scale * displayImage.w_orig;
-	displayImage.h = scale * displayImage.h_orig;
+	displayImage.w = displayImage.w_orig;
+	displayImage.h = displayImage.h_orig;
 	displayImage.x = 0;
 	displayImage.y = -(displayImage.h - height) + animState * (displayImage.h - height);
 }
 
 function panRightAnim(startTime, currentTime) {
-	let scale = height / displayImage.h_orig;
+	if(displayImage.h_orig != height) {
+		scaleImage(false);
+	}
 	let diff = currentTime.getTime() - startTime.getTime();
 	let animState = diff / (slideTime * 1000);
 
-	displayImage.w = scale * displayImage.w_orig;
-	displayImage.h = scale * displayImage.h_orig;
+	displayImage.w = displayImage.w_orig;
+	displayImage.h = displayImage.h_orig;
 	displayImage.y = 0;
 	displayImage.x = -animState * (displayImage.w - width);
 }
 
 function panLeftAnim(startTime, currentTime) {
-	let scale = height / displayImage.h_orig;
+	if(displayImage.h_orig != height) {
+		scaleImage(false);
+	}
 	let diff = currentTime.getTime() - startTime.getTime();
 	let animState = diff / (slideTime * 1000);
 
-	displayImage.w = scale * displayImage.w_orig;
-	displayImage.h = scale * displayImage.h_orig;
+	displayImage.w = displayImage.w_orig;
+	displayImage.h = displayImage.h_orig;
 	displayImage.y = 0;
 	displayImage.x = -(displayImage.w - width) + animState * (displayImage.w - width);
 }
@@ -378,4 +412,29 @@ function vignette(ctx) {
 
 	ctx.fillStyle = grd;
 	ctx.fillRect(0, 0, width, height);
+}
+
+function scaleImage(fitWidth) {
+	let canvasWidth;
+	let canvasHeight;
+	let scale;
+	if(fitWidth) {
+		console.log("Scaling image to fit the width...");
+		scale = width / displayImage.w_orig;
+		canvasWidth = width;
+		canvasHeight = scale * displayImage.h_orig;
+	}
+	else {
+		console.log("Scaling image to fit the height...");
+		scale = height / displayImage.h_orig;
+		canvasHeight = height;
+		canvasWidth = scale * displayImage.w_orig;
+	}
+	let scaleCanvas = new OffscreenCanvas(canvasWidth, canvasHeight);
+	let ctx = scaleCanvas.getContext("2d");
+	ctx.drawImage(displayImage.img, 0, 0, canvasWidth, canvasHeight);
+
+	displayImage.img = scaleCanvas.transferToImageBitmap();
+	displayImage.w_orig = canvasWidth;
+	displayImage.h_orig = canvasHeight;
 }

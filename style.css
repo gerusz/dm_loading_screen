@@ -5,6 +5,12 @@ canvas {
     position: fixed;
     margin: 0;
 }
+canvas.vignette {
+    background-color: transparent;
+}
+canvas.text {
+    background-color: transparent;
+}
 body {
     padding: 0;
     margin: 0;
