@@ -34,11 +34,5 @@ export default
         "categories": [
             "combat"
         ]
-    },
-    {
-        "name": "swordcoast",
-        "title": "The Sword Coast",
-        "file": "https://live.staticflickr.com/5655/30956038735_ab15116a4c_o_d.jpg",
-        "license": "Wizards of the Coast (released into public domain)"
     }
 ]
