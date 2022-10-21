@@ -121,6 +121,7 @@ function draw() {
 	 */
 	if(!firstImageLoaded) {
 		window.requestAnimationFrame(draw);
+		return;
 	}
     const ctx = canvas.getContext("2d");
 	ctx.globalAlpha = 1;
