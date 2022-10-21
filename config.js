@@ -1,3 +1,4 @@
+export default
 {
     "slideTime": 30,
     "hintTime": 15,

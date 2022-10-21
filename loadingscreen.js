@@ -1,6 +1,6 @@
-import hints from './hints.json' assert {type: 'json'};
-import images from './images.json' assert {type: 'json'};
-import config from './config.json' assert {type: 'json'};
+import hints from './hints.js';
+import images from './images.js';
+import config from './config.js';
 const imageFiles = new Map();
 const imageNames = new Array();
 const currentImageHints = new Array();
@@ -20,6 +20,7 @@ var imageChangedThisFrame = false;
 var imageName = "";
 var currentImageTitle = "";
 var currentImageLicense = "";
+var firstImageLoaded = false;
 
 const displayImage = {
 	// This object contains the current image's display properties
@@ -89,12 +90,20 @@ function load_images() {
 	 */
 	images.forEach(img => {
 		let imgFile = new Image();
-		imgFile.src = img.file;
 		let name = img.name ?? img.file;
+		imgFile.onload = function() {
+			console.log(name + " loaded.");
+			if(!firstImageLoaded) {
+				changeSlide();
+				firstImageLoaded = true;
+			}
+		}
 		let hintCategories = img.categories ?? null;
 		let animations = img.animations ?? null;
 		let title = img.title ?? "";
 		let license = img.license ?? "";
+		imgFile.src = img.file;
+		imageNames.push(name);
 		imageFiles.set(name, {
 			file: imgFile,
 			categories: hintCategories,
@@ -102,16 +111,17 @@ function load_images() {
 			title: title,
 			license: license
 		});
-		imageNames.push(name);
 	});
-	changeSlide();
-	currentHintIndex = Math.floor(Math.random() * currentImageHints.length);
-	currentHint = currentImageHints[currentHintIndex];
+	/*currentHintIndex = Math.floor(Math.random() * currentImageHints.length);
+	currentHint = currentImageHints[currentHintIndex];*/
 }
 function draw() {
 	/**
 	 * The main draw loop
 	 */
+	if(!firstImageLoaded) {
+		window.requestAnimationFrame(draw);
+	}
     const ctx = canvas.getContext("2d");
 	ctx.globalAlpha = 1;
 	const time = new Date();
@@ -168,7 +178,6 @@ function draw() {
 	if(redrawTitle || imageChangedThisFrame) {
 		drawTitle(textCanvas.getContext("2d"), displayImage.a);
 	}
-
 
 	window.requestAnimationFrame(draw);
 }
